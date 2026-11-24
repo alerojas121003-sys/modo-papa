@@ -76,17 +76,20 @@ async function load(){
   const paths=di.filter(x=>x.foto_path).map(x=>x.foto_path);
   if(paths.length){const {data}=await sb.storage.from('fotos').createSignedUrls(paths,3600);(data||[]).forEach(s=>{di.forEach(x=>{if(x.foto_path===s.path)x.url=s.signedUrl})})}
 }
-function loginView(step='email',email=''){
+function loginView(){
   app.innerHTML=`<div id="login"><div style="font-size:3rem">🍼</div><h1>Modo Papá</h1>
-  <p class="mut">${step==='email'?'Escribe tu correo y te enviamos un código de 6 dígitos.':'Revisa tu correo y escribe el código.'}</p>
-  ${step==='email'?`<input id="em" type="email" placeholder="tu@correo.com" autocomplete="email"><button id="go">Enviar código</button>`
-  :`<input id="cd" inputmode="numeric" maxlength="8" placeholder="Código" autocomplete="one-time-code"><button id="go">Entrar</button>`}
+  <p class="mut">Entra con tu correo y contraseña. La primera vez, pulsa Crear cuenta.</p>
+  <input id="em" type="email" placeholder="tu@correo.com" autocomplete="email">
+  <input id="pw" type="password" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="current-password">
+  <div class="row"><button id="go">Entrar</button><button id="su" class="g">Crear cuenta</button></div>
   <p class="err" id="er"></p></div>`;
-  $('#go').onclick=async()=>{
-    if(step==='email'){const em=$('#em').value.trim();const {error}=await sb.auth.signInWithOtp({email:em});
-      error?$('#er').textContent='No se pudo enviar: '+error.message:loginView('code',em)}
-    else{const {error}=await sb.auth.verifyOtp({email,token:$('#cd').value.trim(),type:'email'});
-      error?$('#er').textContent='Código incorrecto o vencido. Pide uno nuevo.':init()}};
+  const cred=()=>({email:$('#em').value.trim(),password:$('#pw').value});
+  $('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword(cred());
+    error?$('#er').textContent='No se pudo entrar: '+error.message:init()};
+  $('#su').onclick=async()=>{const {data,error}=await sb.auth.signUp(cred());
+    if(error)$('#er').textContent='No se pudo crear la cuenta: '+error.message;
+    else if(data.session)init();
+    else $('#er').textContent='Cuenta creada. Confirma tu correo y luego pulsa Entrar.'};
 }
 function render(){
   const T=[['home','🏠','Inicio'],['lectura','📖','Hoy'],['cal','📅','Calendario'],['diario','📝','Diario'],['ajustes','⚙️','Ajustes']];
