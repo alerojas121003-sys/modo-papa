@@ -1,4 +1,4 @@
-const C='modo-papa-v1',F=['./','index.html','manifest.json','icon.png'];
+const C='modo-papa-v2',F=['./','index.html','manifest.json','icon.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x))))));
 self.addEventListener('fetch',e=>{
