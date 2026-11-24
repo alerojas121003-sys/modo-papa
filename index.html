@@ -60,13 +60,18 @@ const gest=()=>{const t=Math.floor((pd(hoy())-lmp())/DAY);return{w:Math.floor(t/
 const tam=w=>TAM[Math.max(...Object.keys(TAM).filter(k=>k<=w))];
 
 async function init(){
+ try{
   const {data:{session}}=await sb.auth.getSession();
   if(!session) return loginView();
   U=session.user;
   let {data:c}=await sb.from('config').select('*').eq('user_id',U.id).maybeSingle();
-  if(!c){const r=await sb.from('config').insert({user_id:U.id,due_date:'2027-07-15',diary_start:'2026-11-12'}).select().single();c=r.data}
+  if(!c){const r=await sb.from('config').insert({user_id:U.id,due_date:'2027-07-15',diary_start:'2026-11-12'}).select().single();if(r.error)throw new Error(r.error.message);c=r.data}
+  if(!c) throw new Error('No se pudo leer ni crear tu configuración. Revisa que el SQL se ejecutó completo.');
   cfg=c; await load(); render();
+ }catch(e){fail(e)}
 }
+function fail(e){app.innerHTML=`<div id="login"><h1>Algo falló</h1><p class="err">${esc(e&&e.message||e)}</p><button id="rt">Reintentar</button> <button class="g" id="so">Cerrar sesión</button></div>`;$('#rt').onclick=init;$('#so').onclick=async()=>{await sb.auth.signOut();location.reload()}}
+window.addEventListener('unhandledrejection',ev=>fail(ev.reason));
 async function load(){
   const [e,d,l]=await Promise.all([
     sb.from('eventos').select('*').order('fecha'),
@@ -84,7 +89,7 @@ function loginView(){
   <div class="row"><button id="go">Entrar</button><button id="su" class="g">Crear cuenta</button></div>
   <p class="err" id="er"></p></div>`;
   const cred=()=>({email:$('#em').value.trim(),password:$('#pw').value});
-  $('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword(cred());
+  $('#go').onclick=async()=>{$('#er').textContent='Entrando…';const {error}=await sb.auth.signInWithPassword(cred());
     error?$('#er').textContent='No se pudo entrar: '+error.message:init()};
   $('#su').onclick=async()=>{const {data,error}=await sb.auth.signUp(cred());
     if(error)$('#er').textContent='No se pudo crear la cuenta: '+error.message;
